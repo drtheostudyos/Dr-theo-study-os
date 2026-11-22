@@ -104,13 +104,82 @@
   document.body.addEventListener("click",e=>{const b=e.target.closest("[data-session-delete]");if(b&&confirm("Delete this study session from history?")){data.sessions=data.sessions.filter(x=>x.id!==b.dataset.sessionDelete);persist()}});
   if(data.timer.running)startTicker();
   function configReady(){const c=window.DR_THEO_CONFIG||{};return c.SUPABASE_URL?.startsWith("https://")&&c.SUPABASE_ANON_KEY&&!c.SUPABASE_ANON_KEY.includes("PASTE_")}
-  if(configReady()&&window.supabase){supabase=window.supabase.createClient(DR_THEO_CONFIG.SUPABASE_URL,DR_THEO_CONFIG.SUPABASE_ANON_KEY);supabase.auth.getSession().then(({data:s})=>{if(s.session){user=s.session.user;loadCloud()}});supabase.auth.onAuthStateChange((_event,session)=>{user=session?.user||null;if(user)loadCloud();else setSync("Local mode")})}
+  if (configReady() && window.supabase) {
+  const c = window.DR_THEO_CONFIG;
+
+  supabase = window.supabase.createClient(
+    c.SUPABASE_URL,
+    c.SUPABASE_ANON_KEY
+  );
+
+  supabase.auth.getSession().then(({ data, error }) => {
+    if (error) {
+      setSync("Session error");
+      console.error(error);
+      return;
+    }
+
+    if (data.session) {
+      user = data.session.user;
+      loadCloud();
+    }
+  });
+
+  supabase.auth.onAuthStateChange((_event, session) => {
+    user = session?.user || null;
+    if (user) loadCloud();
+    else setSync("Local mode");
+  });
+  }
   function setSync(s){$("syncState").textContent=s}
   function scheduleCloudSave(){if(!user||!supabase)return;clearTimeout(saveTimer);saveTimer=setTimeout(saveCloud,900)}
   async function saveCloud(){if(!user||!supabase||syncing)return;syncing=true;setSync("Syncing…");const {error}=await supabase.from("study_data").upsert({user_id:user.id,payload:data,updated_at:new Date().toISOString()});syncing=false;if(error){setSync("Sync error");console.error(error)}else setSync("Cloud synced")}
   async function loadCloud(){if(!user||!supabase)return;setSync("Loading cloud…");const {data:row,error}=await supabase.from("study_data").select("payload").eq("user_id",user.id).maybeSingle();if(error){setSync("Cloud error");alert("Cloud load failed: "+error.message);return}if(row?.payload){data=row.payload;data.sessions=Array.isArray(data.sessions)?data.sessions:[];data.timer=data.timer||{running:false,startedAt:null,elapsed:0};localStorage.setItem(STORAGE,JSON.stringify(data));render();renderTimerAndHistory();if(data.timer.running)startTicker();else stopTicker()}else await saveCloud();setSync("Cloud synced")}
   $("authToggle").addEventListener("click",()=>{if(!$("authDialog").open)$("authDialog").showModal()});
-  async function auth(mode){if(!supabase){$("authMessage").textContent="First add your Supabase URL and publishable/anon key in config.js, then reload.";return}const email=$("email").value,password=$("password").value;if(!email||!password){$("authMessage").textContent="Enter email and password.";return}const result=mode==="signup"?await supabase.auth.signUp({email,password}):await supabase.auth.signInWithPassword({email,password});if(result.error){$("authMessage").textContent=result.error.message;return}if(mode==="signup"&&!result.data.session){$("authMessage").textContent="Account created. Check your email to confirm, then sign in.";return}user=result.data.user;await loadCloud();$("authMessage").textContent="Signed in.";setTimeout(()=>$("authDialog").close(),700)}
+  
+async function auth(mode) {
+  const msg = $("authMessage");
+  if (!supabase) {
+    msg.textContent = "Supabase not connected. Check config.js URL and anon key.";
+    return;
+  }
+
+  const email = $("email").value.trim();
+  const password = $("password").value;
+
+  if (!email || !password) {
+    msg.textContent = "Enter email and password.";
+    return;
+  }
+
+  msg.textContent = "Please wait...";
+
+  try {
+    const result = mode === "signup"
+      ? await supabase.auth.signUp({ email, password })
+      : await supabase.auth.signInWithPassword({ email, password });
+
+    if (result.error) {
+      msg.textContent = result.error.message;
+      return;
+    }
+
+    if (mode === "signup" && !result.data.session) {
+      msg.textContent = "Account created. Verify your email, then sign in.";
+      return;
+    }
+
+    user = result.data.user;
+    await loadCloud();
+
+    msg.textContent = "Signed in successfully.";
+    $("authDialog").close();
+
+  } catch (error) {
+    msg.textContent = "Error: " + error.message;
+  }
+}
+  
   $("signInBtn").addEventListener("click",()=>auth("signin"));$("signUpBtn").addEventListener("click",()=>auth("signup"));
   $("signOutBtn").addEventListener("click",async()=>{await supabase?.auth.signOut();user=null;setSync("Local mode");$("authMessage").textContent="Signed out."});
   render();
