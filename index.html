@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#090d16">
+  <title>Dr Theo Study OS</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand"><div class="mark">DT</div><div><b>DR THEO</b><small>STUDY OPERATING SYSTEM</small></div></div>
+      <div class="top-actions"><span id="syncState" class="sync">Local mode</span><button id="authToggle" class="ghost">Sign in / Sync</button></div>
+    </header>
+    <main>
+      <section class="hero">
+        <div><p class="eyebrow">YOUR DAILY COMMAND CENTRE</p><h1>Study with a system.<br><em>Revise before you forget.</em></h1><p class="sub">Your topics, recall performance and next revision dates — in one place.</p></div>
+        <div class="date-card"><span>TODAY</span><strong id="todayDate">—</strong><small id="todayCount">Loading schedule…</small></div>
+      </section>
+      <section class="stats">
+        <article><span>Due today</span><strong id="dueCount">0</strong><small>Topics to revise</small></article>
+        <article><span>Overdue</span><strong id="overdueCount">0</strong><small>Need attention</small></article>
+        <article><span>Topics tracked</span><strong id="topicCount">0</strong><small>Across all subjects</small></article>
+        <article><span>Weak topics</span><strong id="weakCount">0</strong><small>Recall / accuracy flags</small></article>
+      </section>
+      <section class="panel">
+        <div class="section-head"><div><p class="eyebrow">PRIORITY QUEUE</p><h2>Today's revision</h2></div><button id="showAllBtn" class="ghost">Show all topics</button></div>
+        <div id="todayList" class="topic-list empty">No topics due. Add your completed topics to generate a schedule.</div>
+      </section>
+      <section class="grid-two">
+        <section class="panel">
+          <div class="section-head"><div><p class="eyebrow">BUILD YOUR MEMORY MAP</p><h2>Add a studied topic</h2></div></div>
+          <form id="topicForm" class="form-grid">
+            <label>Subject<select id="subject" required></select></label>
+            <label>Topic name<input id="topic" required placeholder="e.g. Myocardial infarction"></label>
+            <label>First studied date<input id="studyDate" type="date" required></label>
+            <label>MCQs attempted<input id="attempted" type="number" min="0" value="20"></label>
+            <label>MCQs correct<input id="correct" type="number" min="0" value="14"></label>
+            <label>Initial recall<select id="recall"><option value="3">Moderate</option><option value="1">Poor</option><option value="5">Strong</option></select></label>
+            <label class="wide">Notes (optional)<input id="notes" placeholder="Difficult concepts, mistakes, etc."></label>
+            <button class="primary wide" type="submit">Add topic & calculate revisions</button>
+          </form>
+        </section>
+        <section class="panel">
+          <div class="section-head"><div><p class="eyebrow">AFTER EACH REVISION</p><h2>Log performance</h2></div></div>
+          <form id="revisionForm" class="form-grid">
+            <label class="wide">Topic<select id="revisionTopic" required><option value="">Select a topic</option></select></label>
+            <label>Revision date<input id="revisionDate" type="date" required></label>
+            <label>MCQs attempted<input id="revAttempted" type="number" min="0" value="20"></label>
+            <label>MCQs correct<input id="revCorrect" type="number" min="0" value="15"></label>
+            <label>Recall without notes<select id="revRecall"><option value="3">Moderate</option><option value="1">Poor</option><option value="5">Strong</option></select></label>
+            <label class="wide">What went wrong? (optional)<input id="revNotes" placeholder="Forgot criteria, confused drugs, etc."></label>
+            <button class="primary wide" type="submit">Save revision & reschedule</button>
+          </form>
+          <p class="hint">Be honest about recall. The schedule is only as useful as the performance data you enter.</p>
+        </section>
+      </section>
+      <section class="panel timer-panel">
+        <div class="section-head"><div><p class="eyebrow">FOCUSED WORK</p><h2>Study timer & session history</h2></div><span id="timerStatus" class="tag">Not running</span></div>
+        <div class="timer-layout">
+          <div class="timer-main">
+            <div id="timerDisplay" class="timer-display">00:00:00</div>
+            <div class="timer-controls"><button id="timerStart" class="primary">Start</button><button id="timerPause" class="ghost" disabled>Pause</button><button id="timerFinish" class="ghost" disabled>Finish & save</button></div>
+            <p class="hint">Start when you begin focused study. Pause for breaks; finish to save the session to your history.</p>
+          </div>
+          <div class="timer-meta form-grid">
+            <label>Subject<select id="sessionSubject"></select></label>
+            <label>Topic (optional)<input id="sessionTopic" placeholder="e.g. Cardiology"></label>
+            <label class="wide">Session note (optional)<input id="sessionNote" placeholder="Lecture, revision, MCQs, etc."></label>
+          </div>
+        </div>
+        <div class="session-stats">
+          <article><span>Today</span><strong id="studyToday">0m</strong><small>Focused study time</small></article>
+          <article><span>Last 7 days</span><strong id="studyWeek">0h</strong><small>Rolling 7-day total</small></article>
+          <article><span>All time</span><strong id="studyTotal">0h</strong><small>Saved sessions</small></article>
+        </div>
+        <div class="section-head history-head"><div><p class="eyebrow">TIME AUDIT</p><h2>Study history</h2></div><label class="date-filter">Filter date<input id="historyDate" type="date"></label></div>
+        <div id="sessionHistory" class="topic-list empty">No study sessions saved yet.</div>
+      </section>
+      <section class="panel">
+        <div class="section-head"><div><p class="eyebrow">YOUR BACKLOG</p><h2>All tracked topics</h2></div><div class="filters"><select id="filterSubject"><option value="">All subjects</option></select><select id="filterStatus"><option value="all">All status</option><option value="weak">Weak only</option><option value="due">Due / overdue</option></select></div></div>
+        <div id="allTopics" class="topic-list empty">No topics added yet.</div>
+      </section>
+      <section class="footer-actions"><button id="exportBtn" class="ghost">Export backup</button><label class="ghost upload">Import backup<input id="importFile" type="file" accept="application/json"></label><button id="clearLocal" class="danger">Clear local data</button></section>
+      <p class="disclaimer">Scheduling is a practical heuristic, not a scientifically perfect memory predictor. Use active recall and MCQ performance; adjust the plan when your exam demands it.</p>
+    </main>
+  </div>
+  <dialog id="authDialog">
+    <form method="dialog" class="dialog-card" id="authForm">
+      <button class="close" value="cancel" aria-label="Close">×</button>
+      <p class="eyebrow">CLOUD SYNC</p><h2>Sign in to Dr Theo</h2>
+      <p class="hint">Use an email you control. Your data stays associated with your own account.</p>
+      <label>Email<input id="email" type="email" required placeholder="you@example.com"></label>
+      <label>Password<input id="password" type="password" minlength="6" required placeholder="At least 6 characters"></label>
+      <div class="dialog-actions"><button id="signInBtn" type="button" class="primary">Sign in</button><button id="signUpBtn" type="button" class="ghost">Create account</button></div>
+      <p id="authMessage" class="hint"></p>
+      <button id="signOutBtn" type="button" class="danger hidden">Sign out</button>
+    </form>
+  </dialog>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
