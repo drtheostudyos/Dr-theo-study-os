@@ -103,6 +103,19 @@
   $("historyDate").addEventListener("change",renderTimerAndHistory);
   document.body.addEventListener("click",e=>{const b=e.target.closest("[data-session-delete]");if(b&&confirm("Delete this study session from history?")){data.sessions=data.sessions.filter(x=>x.id!==b.dataset.sessionDelete);persist()}});
   if(data.timer.running)startTicker();
+  document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) {
+    renderTimerAndHistory();
+    if (data.timer.running) startTicker();
+  } else {
+    stopTicker();
+  }
+});
+
+window.addEventListener("pageshow", () => {
+  renderTimerAndHistory();
+  if (data.timer.running) startTicker();
+});
   function configReady(){const c=window.DR_THEO_CONFIG||{};return c.SUPABASE_URL?.startsWith("https://")&&c.SUPABASE_ANON_KEY&&!c.SUPABASE_ANON_KEY.includes("PASTE_")}
   if (configReady() && window.supabase) {
   const c = window.DR_THEO_CONFIG;
